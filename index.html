@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hifzhan & Farah - Wedding Moments</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600;700&family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        script: ['Dancing Script', 'cursive'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    colors: {
+                        wedding: {
+                            gold: '#D4AF37',
+                            cream: '#FDFBF7',
+                            pink: '#FADADD',
+                            rose: '#E6B8B8',
+                            dark: '#2C2C2C',
+                        }
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #FDFBF7;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #D4AF37;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #B5952F;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-wedding-cream text-wedding-dark antialiased min-h-screen relative overflow-x-hidden selection:bg-wedding-rose selection:text-white"
+    x-data="weddingApp()" x-init="initApp()">
+
+    <!-- Decorative Background Elements -->
+    <div class="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
+        <div class="absolute -top-20 -left-20 w-96 h-96 bg-wedding-pink/20 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute top-40 right-0 w-72 h-72 bg-wedding-gold/10 rounded-full blur-3xl animate-float"></div>
+        <div class="absolute bottom-0 left-1/3 w-full h-96 bg-wedding-rose/10 rounded-full blur-3xl"></div>
+    </div>
+
+    <!-- Header / Hero -->
+    <header class="pt-16 pb-12 text-center px-4">
+        <div class="animate-fade-in">
+            <p class="font-serif text-xl md:text-2xl text-stone-500 mb-3 tracking-[0.2em] uppercase">The Wedding Of</p>
+            <h1 class="font-script text-6xl md:text-8xl text-wedding-dark mb-2 drop-shadow-sm">Hifzhan & Farah</h1>
+            <p class="font-serif italic text-xl text-stone-600 mt-4 tracking-wide">Capturing Our Forever Moments</p>
+            <div class="w-24 h-1 bg-wedding-gold mx-auto mt-6 rounded-full opacity-60"></div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
+
+        <!-- Loading Overlay -->
+        <div x-show="isLoading && allMoments.length === 0"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-wedding-cream/80 backdrop-blur-sm"
+            x-transition.opacity>
+            <div class="text-center">
+                <svg class="animate-spin h-12 w-12 text-wedding-gold mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
+                </svg>
+                <p class="font-serif text-lg text-gray-600">Loading moments...</p>
+            </div>
+        </div>
+
+        <!-- Error Banner -->
+        <div x-show="loadError" x-cloak
+            class="mb-8 rounded-lg bg-red-50 p-4 border border-red-200 text-center animate-fade-in">
+            <div class="flex items-center justify-center gap-2 text-red-700 mb-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                    </path>
+                </svg>
+                <span class="font-medium">Failed to load gallery</span>
+            </div>
+            <p class="text-red-600 text-sm mb-3" x-text="errorMessage"></p>
+            <button @click="loadMomentsFromServer()"
+                class="text-xs font-semibold text-red-700 bg-red-100 px-3 py-1 rounded-full hover:bg-red-200 transition-colors">
+                Try Again
+            </button>
+        </div>
+
+        <!-- Empty State -->
+        <div x-show="!isLoading && !loadError && allMoments.length === 0"
+            class="text-center py-20 opacity-60 animate-fade-in" x-cloak>
+            <svg class="w-20 h-20 mx-auto mb-6 text-wedding-rose" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z">
+                </path>
+            </svg>
+            <p class="font-serif text-xl mb-6 text-gray-600">No moments captured yet</p>
+            <button @click="openModal()"
+                class="inline-flex items-center px-6 py-3 bg-wedding-dark text-white rounded-lg hover:bg-black transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Capture Your First Moment
+            </button>
+        </div>
+
+        <!-- Gallery Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12 px-4 md:px-0">
+            <template x-for="moment in visibleMoments" :key="moment.id">
+                <div class="group relative bg-white p-3 pb-20 shadow-xl transform transition-all duration-500 hover:scale-[1.05] hover:z-20 hover:shadow-2xl"
+                    :style="`transform: rotate(${moment.rotation}deg)`"
+                    @mouseenter="$el.style.transform = 'scale(1.05) rotate(0deg)'"
+                    @mouseleave="$el.style.transform = `rotate(${moment.rotation}deg)`">
+                    <!-- Pin/Tape (Decorative) -->
+                    <div
+                        class="absolute -top-3 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-white/40 blur-[1px] shadow-sm border border-white/50 z-20">
+                    </div>
+
+                    <!-- Image Frame -->
+                    <div class="aspect-[4/5] w-full overflow-hidden bg-gray-100 relative cursor-pointer shadow-inner"
+                        @click="viewImage(moment)">
+                        <img :src="moment.image" :alt="moment.name" referrerpolicy="no-referrer"
+                            class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+
+                        <!-- Gradient Overlay for Text Readability -->
+                        <div
+                            class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80">
+                        </div>
+
+                        <!-- Name Overlay (Bright) -->
+                        <div
+                            class="absolute bottom-4 left-4 right-4 text-center transform translate-y-0 transition-transform duration-300">
+                            <div class="inline-block bg-black/50 backdrop-blur-sm px-4 py-2 rounded-lg">
+                                <h3 class="font-script text-3xl sm:text-4xl text-white mb-0 leading-tight drop-shadow-md truncate"
+                                    x-text="moment.name" :title="moment.name"></h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Caption Section (Paper Bottom) -->
+                    <div class="text-center absolute bottom-2 left-2 right-2 bg-white p-4 rounded-sm">
+                        <p class="font-serif text-sm text-gray-800 italic line-clamp-3 leading-relaxed"
+                            x-text="moment.message"></p>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- Infinite Scroll Loader -->
+        <div x-ref="loadMoreTrigger" class="py-12 text-center" x-show="hasMore && !loadError">
+            <div x-show="isLoading" class="flex items-center justify-center gap-2 text-gray-400">
+                <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
+                </svg>
+                <span class="text-sm font-medium">Loading details...</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating Action Button -->
+    <div class="fixed bottom-8 sm:bottom-8 bottom-20 right-4 sm:right-8 z-40">
+        <button @click="openModal()"
+            class="group flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-wedding-dark text-white shadow-lg hover:shadow-2xl hover:bg-black transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-wedding-gold/50">
+            <svg class="w-8 h-8 transition-transform duration-300 group-hover:rotate-90" fill="none"
+                stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Success Toast -->
+    <!-- Success Toast (Elegant) -->
+    <div x-show="showToast" x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 translate-y-8 scale-90"
+        x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+        x-transition:leave-end="opacity-0 translate-y-8 scale-90"
+        class="fixed bottom-12 left-1/2 transform -translate-x-1/2 z-[70] w-full max-w-sm px-4 pointer-events-none"
+        x-cloak>
+        <div
+            class="glass-panel mx-auto bg-white/90 backdrop-blur-md rounded-full shadow-2xl py-3 px-6 flex items-center justify-center gap-3 border border-white/50 pointer-events-auto">
+            <div class="flex-shrink-0 bg-green-100 p-1 rounded-full">
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <p class="font-sans font-medium text-gray-800 text-sm">Moment captured successfully! ✨</p>
+        </div>
+    </div>
+
+    <!-- Add Moment Modal -->
+    <div x-show="isModalOpen" @keydown.escape.window="closeModal()" class="fixed inset-0 z-50 overflow-y-auto"
+        aria-labelledby="modal-title" role="dialog" aria-modal="true" x-cloak>
+        <!-- Backdrop -->
+        <div x-show="isModalOpen" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+            class="fixed inset-0 bg-stone-900/60 transition-opacity backdrop-blur-sm" @click="closeModal()"></div>
+
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div x-show="isModalOpen" x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0" x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="glass-panel w-full max-w-md transform overflow-hidden rounded-2xl p-8 shadow-2xl transition-all relative">
+                <div class="absolute top-4 right-4">
+                    <button @click="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="text-center mb-8">
+                    <h3 class="font-serif text-2xl font-semibold text-gray-900" id="modal-title">Capture a Moment</h3>
+                    <p class="text-sm text-gray-500 mt-2">Share your memory with Hifzhan & Farah</p>
+                </div>
+
+                <form @submit.prevent="addMoment" class="space-y-6" x-ref="modalForm">
+                    <!-- Image Upload -->
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Capture Photo</label>
+                        <div class="mt-1 flex justify-center rounded-xl border-2 border-dashed border-gray-300 px-6 pt-8 pb-8 hover:border-wedding-gold/50 transition-colors cursor-pointer bg-white/50 active:bg-wedding-gold/10"
+                            @click="$refs.fileInput.click()">
+                            <div class="space-y-1 text-center">
+                                <template x-if="!tempImage">
+                                    <div class="flex flex-col items-center">
+                                        <!-- Camera Icon -->
+                                        <svg class="mx-auto h-16 w-16 text-wedding-gold" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                                            </path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        </svg>
+                                        <div class="mt-4">
+                                            <span
+                                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-wedding-dark shadow-sm hover:bg-black focus:outline-none">
+                                                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                                                    </path>
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                </svg>
+                                                Take a Photo
+                                            </span>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-2">Tap to open camera</p>
+                                    </div>
+                                </template>
+                                <template x-if="tempImage">
+                                    <div class="relative group">
+                                        <img :src="tempImage"
+                                            class="max-h-64 rounded-lg shadow-sm mx-auto object-contain">
+                                        <div
+                                            class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                                            <span class="text-white text-sm font-medium flex items-center gap-2">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                                    </path>
+                                                </svg>
+                                                Retake Photo
+                                            </span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                            <!-- 'capture' attribute forces camera on mobile -->
+                            <input x-ref="fileInput" type="file" class="hidden" accept="image/*" capture="environment"
+                                @change="handleFileSelect">
+                        </div>
+                    </div>
+
+                    <!-- Name Input -->
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700">Your Name</label>
+                        <input type="text" id="name" x-model="formData.name" required maxlength="50"
+                            class="mt-1 block w-full rounded-lg border-gray-300 bg-white/60 shadow-sm focus:border-wedding-gold focus:ring focus:ring-wedding-gold/20 sm:text-sm py-2 px-3 transition-colors"
+                            placeholder="e.g. Aunt May">
+                        <p class="text-xs text-gray-400 mt-1" x-text="`${formData.name.length}/50 characters`"></p>
+                    </div>
+
+                    <!-- Message Input -->
+                    <div>
+                        <label for="message" class="block text-sm font-medium text-gray-700">Best Wishes /
+                            Description</label>
+                        <textarea id="message" rows="3" x-model="formData.message" required
+                            class="mt-1 block w-full rounded-lg border-gray-300 bg-white/60 shadow-sm focus:border-wedding-gold focus:ring focus:ring-wedding-gold/20 sm:text-sm py-2 px-3 transition-colors"
+                            placeholder="Write a sweet message for the couple... (Max 20 words)"></textarea>
+                        <div class="flex justify-between mt-1">
+                            <p class="text-xs"
+                                :class="wordCount > maxWords ? 'text-red-500 font-medium' : 'text-gray-400'"
+                                x-text="`${wordCount}/${maxWords} words`"></p>
+                            <p x-show="wordCount > maxWords" class="text-xs text-red-500">Please shorten your message
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="flex items-center justify-end gap-3 pt-2">
+                        <button type="button" @click="closeModal()"
+                            class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-wedding-gold focus:ring-offset-2">Cancel</button>
+                        <button type="submit" :disabled="!isValid || isProcessingImage"
+                            class="rounded-lg bg-wedding-dark px-6 py-2 text-sm font-medium text-white hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-wedding-gold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                            <span x-show="!isProcessingImage">Post Moment</span>
+                            <span x-show="isProcessingImage" class="flex items-center gap-2">
+                                <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                                Processing...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal (Large View) -->
+    <div x-show="viewingMoment" x-cloak class="fixed inset-0 z-[60] overflow-y-auto" role="dialog" aria-modal="true">
+        <div x-show="viewingMoment" x-transition.opacity class="fixed inset-0 bg-black/90 backdrop-blur-md"
+            @click="viewingMoment = null"></div>
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div x-show="viewingMoment" x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0 scale-90" x-transition:enter-end="opacity-100 scale-100"
+                class="relative max-w-5xl w-full" @click.stop>
+                <button @click="viewingMoment = null" class="absolute -top-12 right-0 text-white hover:text-gray-300">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+                <template x-if="viewingMoment">
+                    <div class="bg-white p-2 rounded shadow-2xl">
+                        <img :src="viewingMoment.image" referrerpolicy="no-referrer"
+                            class="w-full max-h-[80vh] object-contain mx-auto" :alt="viewingMoment.name">
+                        <div class="p-6 bg-white text-center">
+                            <h2 class="font-script text-4xl mb-2" x-text="viewingMoment.name"></h2>
+                            <p class="font-serif text-lg text-gray-700 italic" x-text="viewingMoment.message"></p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const ROTATION_MIN = -3;
+        const ROTATION_MAX = 3;
+        const CROP_ASPECT_RATIO = 4 / 5;
+
+        // ==================== GOOGLE APPS SCRIPT CONFIG ====================
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzASYfMQ14EpvfGYZ1Rx1C1XWrEOP82rutASov0VAEo5my8nPYn_jr3mTCKyy11oYRC/exec';
+
+        function weddingApp() {
+            return {
+                allMoments: [], // Stores all fetched moments
+                visibleMoments: [], // Stores currently visible moments
+                isModalOpen: false,
+                viewingMoment: null,
+                tempImage: null,
+                showToast: false,
+                isProcessingImage: false,
+                isLoading: true,
+                loadError: false, // New: Track loading error
+                errorMessage: '',
+
+                // Pagination
+                page: 1,
+                itemsPerPage: 12,
+                hasMore: false,
+
+                // Word Counter
+                maxWords: 20,
+                wordCount: 0,
+
+                formData: {
+                    name: '',
+                    message: '',
+                    image: null
+                },
+
+                async initApp() {
+                    // Load moments from Google Sheets
+                    await this.loadMomentsFromServer();
+
+                    // Infinite Scroll Observer
+                    const observer = new IntersectionObserver((entries) => {
+                        if (entries[0].isIntersecting && this.hasMore && !this.isLoading) {
+                            this.loadMore();
+                        }
+                    }, { rootMargin: '100px' });
+
+                    if (this.$refs.loadMoreTrigger) {
+                        observer.observe(this.$refs.loadMoreTrigger);
+                    }
+
+                    // Focus trap for modal
+                    this.$watch('isModalOpen', (value) => {
+                        if (value) {
+                            this.$nextTick(() => {
+                                const firstInput = this.$refs.modalForm?.querySelector('input, textarea');
+                                firstInput?.focus();
+                            });
+                        }
+                    });
+
+                    // Watch message for word count
+                    this.$watch('formData.message', (value) => {
+                        this.updateWordCount(value);
+                    });
+                },
+
+                updateWordCount(text) {
+                    const words = text.trim().split(/\s+/).filter(word => word.length > 0);
+                    this.wordCount = words.length;
+
+                    if (this.wordCount > this.maxWords) {
+                        // Truncate logic if needed, but for now allows typing and checking upon validation
+                        // Or stricly truncate:
+                        // this.formData.message = words.slice(0, this.maxWords).join(' ');
+                    }
+                },
+
+                async loadMomentsFromServer() {
+                    try {
+                        this.isLoading = true;
+                        this.loadError = false;
+
+                        const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getMoments`);
+                        const data = await response.json();
+
+                        if (data.success) {
+                            this.allMoments = data.moments || [];
+                            this.renderVisibleMoments();
+                        } else {
+                            throw new Error(data.message || 'Failed to load data');
+                        }
+                    } catch (error) {
+                        console.error('Error fetching moments:', error);
+                        this.loadError = true;
+                        this.errorMessage = 'Could not load the gallery. Please try refreshing.';
+                        // Do NOT load demo data in production
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                renderVisibleMoments() {
+                    const nextBatch = this.allMoments.slice(0, this.page * this.itemsPerPage);
+                    this.visibleMoments = nextBatch;
+                    this.hasMore = this.visibleMoments.length < this.allMoments.length;
+                },
+
+                loadMore() {
+                    this.page++;
+                    this.renderVisibleMoments();
+                },
+
+                openModal() {
+                    this.isModalOpen = true;
+                    this.resetForm();
+                },
+
+                closeModal() {
+                    this.isModalOpen = false;
+                    setTimeout(() => this.resetForm(), 300);
+                },
+
+                resetForm() {
+                    this.formData = { name: '', message: '', image: null };
+                    this.tempImage = null;
+                    this.wordCount = 0;
+                    if (this.$refs.fileInput) this.$refs.fileInput.value = '';
+                },
+
+                get isValid() {
+                    return this.formData.name.trim() !== '' &&
+                        this.formData.message.trim() !== '' &&
+                        this.wordCount <= this.maxWords &&
+                        this.formData.image !== null;
+                },
+
+                async handleFileSelect(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    // Basic Validation
+                    if (!file.type.match('image.*')) {
+                        alert('Please select an image file');
+                        return;
+                    }
+
+                    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                        alert('Image is too large. Please select an image under 5MB.');
+                        return;
+                    }
+
+                    this.isProcessingImage = true;
+
+                    try {
+                        // Compress and crop image
+                        const compressedImage = await this.processImage(file);
+                        this.tempImage = compressedImage;
+                        this.formData.image = compressedImage;
+                    } catch (error) {
+                        console.error('Error processing image:', error);
+                        alert('Error processing image. Please try again.');
+                    } finally {
+                        this.isProcessingImage = false;
+                    }
+                },
+
+                processImage(file) {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const img = new Image();
+                            img.src = e.target.result;
+                            img.onload = () => {
+                                const canvas = document.createElement('canvas');
+                                const ctx = canvas.getContext('2d');
+
+                                // Target dimensions (4:5 aspect ratio)
+                                const MAX_WIDTH = 800;
+                                const MAX_HEIGHT = 1000;
+
+                                let width = img.width;
+                                let height = img.height;
+
+                                // Calculate crop (center crop 4:5)
+                                let sx = 0, sy = 0, sWidth = width, sHeight = height;
+                                const targetRatio = 4 / 5;
+                                const sourceRatio = width / height;
+
+                                if (sourceRatio > targetRatio) {
+                                    // Source is wider, crop width
+                                    sWidth = height * targetRatio;
+                                    sx = (width - sWidth) / 2;
+                                } else {
+                                    // Source is taller, crop height
+                                    sHeight = width / targetRatio;
+                                    sy = (height - sHeight) / 2;
+                                }
+
+                                canvas.width = MAX_WIDTH;
+                                canvas.height = MAX_HEIGHT;
+
+                                ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, MAX_WIDTH, MAX_HEIGHT);
+                                resolve(canvas.toDataURL('image/jpeg', 0.85)); // 85% quality
+                            };
+                            img.onerror = reject;
+                        };
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+                },
+
+                async addMoment() {
+                    if (!this.isValid || this.isProcessingImage) return;
+
+                    this.isProcessingImage = true;
+
+                    try {
+                        // 1. Upload Image to Google Drive
+                        // Apps Script expects standard form data or URL parameters. 
+                        // For file uploads, Base64 in a hidden method is often easiest if the previous method worked.
+                        // But let's stick to the method that worked: POST with URLSearchParams for textual data, 
+                        // but for specific image data simpler to plain POST body if capable.
+                        // Actually, looking at the backend code, it expects `e.parameter.imageData`.
+                        // URLSearchParams is safest for Google Apps Script Web Apps.
+
+                        const imageUploadParams = new URLSearchParams();
+                        imageUploadParams.append('action', 'uploadImage');
+                        imageUploadParams.append('imageData', this.formData.image);
+                        imageUploadParams.append('fileName', `moment_${Date.now()}.jpg`);
+
+                        const uploadResponse = await fetch(GOOGLE_SCRIPT_URL, {
+                            method: 'POST',
+                            body: imageUploadParams
+                        });
+                        const uploadResult = await uploadResponse.json();
+
+                        if (!uploadResult.success) {
+                            throw new Error(uploadResult.message || 'Image upload failed');
+                        }
+
+                        // 2. Add Moment Data to Sheet
+                        const momentParams = new URLSearchParams();
+                        momentParams.append('action', 'addMoment');
+                        momentParams.append('name', this.formData.name);
+                        momentParams.append('message', this.formData.message);
+                        momentParams.append('imageUrl', uploadResult.imageUrl);
+                        momentParams.append('rotation', (Math.random() * (ROTATION_MAX - ROTATION_MIN) + ROTATION_MIN).toFixed(1));
+
+                        const saveResponse = await fetch(GOOGLE_SCRIPT_URL, {
+                            method: 'POST',
+                            body: momentParams
+                        });
+                        const saveResult = await saveResponse.json();
+
+                        if (saveResult.success) {
+                            // Add new moment to local list (prepend)
+                            const newMoment = {
+                                id: saveResult.id,
+                                name: saveResult.name,
+                                message: saveResult.message,
+                                image: saveResult.image,
+                                rotation: saveResult.rotation
+                            };
+
+                            this.allMoments.unshift(newMoment);
+                            this.renderVisibleMoments(); // Refresh grid
+
+                            this.closeModal();
+                            this.showToast = true;
+                            setTimeout(() => this.showToast = false, 3000);
+
+                            // Scroll to top
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        } else {
+                            throw new Error(saveResult.message || 'Failed to save data');
+                        }
+
+                    } catch (error) {
+                        console.error('Error adding moment:', error);
+                        alert(`Failed to add moment: ${error.message}\n\nPlease check your internet connection or try again.`);
+                    } finally {
+                        this.isProcessingImage = false;
+                    }
+                },
+
+                viewImage(moment) {
+                    this.viewingMoment = moment;
+                },
+
+                getTimeAgo(timestamp) {
+                    if (!timestamp) return '';
+                    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+
+                    if (seconds < 60) return 'Just now';
+                    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
+                    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+                    if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`;
+                    return `${Math.floor(seconds / 604800)} weeks ago`;
+                },
+
+                nextSlide() {
+                    this.currentSlide = (this.currentSlide + 1) % this.moments.length;
+                },
+
+                previousSlide() {
+                    this.currentSlide = (this.currentSlide - 1 + this.moments.length) % this.moments.length;
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
