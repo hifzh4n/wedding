@@ -413,13 +413,20 @@
                     </svg>
                 </button>
                 <template x-if="viewingMoment">
-                    <div class="bg-white p-2 rounded shadow-2xl">
+                    <div class="bg-transparent p-0 rounded shadow-2xl">
+                        <!-- For new style, the image HAS the frame/text, so show it cleanly (bg-transparent) -->
+                        <!-- For old style, we might want a white bg, but transparent works generally -->
+
                         <img :src="viewingMoment.image" referrerpolicy="no-referrer"
-                            class="w-full max-h-[80vh] object-contain mx-auto" :alt="viewingMoment.name">
-                        <div class="p-6 bg-white text-center">
-                            <h2 class="font-script text-4xl mb-2" x-text="viewingMoment.name"></h2>
-                            <p class="font-serif text-lg text-gray-700 italic" x-text="viewingMoment.message"></p>
-                        </div>
+                            class="w-full max-h-[85vh] object-contain mx-auto rounded-sm" :alt="viewingMoment.name">
+
+                        <!-- Only show HTML text helpers if it's an OLD style image (raw) -->
+                        <template x-if="!isNewStyle(viewingMoment)">
+                            <div class="p-6 bg-white text-center mt-[-4px] rounded-b-lg">
+                                <h2 class="font-script text-4xl mb-2" x-text="viewingMoment.name"></h2>
+                                <p class="font-serif text-lg text-gray-700 italic" x-text="viewingMoment.message"></p>
+                            </div>
+                        </template>
                     </div>
                 </template>
             </div>
