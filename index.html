@@ -503,17 +503,33 @@
                     }
                 },
 
-                async loadMomentsFromServer() {
+                async loadMomentsFromServer(page = 1) {
                     try {
                         this.isLoading = true;
                         this.loadError = false;
 
-                        const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getMoments`);
+                        // Use server-side pagination
+                        const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getMoments&page=${page}&limit=${this.itemsPerPage}`);
                         const data = await response.json();
 
                         if (data.success) {
-                            this.allMoments = data.moments || [];
-                            this.renderVisibleMoments();
+                            if (page === 1) {
+                                // First load: replace everything
+                                this.allMoments = data.moments || [];
+                            } else {
+                                // Subsequent loads: append new moments
+                                this.allMoments = [...this.allMoments, ...(data.moments || [])];
+                            }
+
+                            // Check if server says there are more
+                            if (typeof data.hasMore !== 'undefined') {
+                                this.hasMore = data.hasMore;
+                            } else {
+                                // Fallback for old backend (assumes it returned everything)
+                                this.hasMore = false;
+                            }
+
+                            this.visibleMoments = this.allMoments;
                         } else {
                             throw new Error(data.message || 'Failed to load data');
                         }
@@ -521,21 +537,20 @@
                         console.error('Error fetching moments:', error);
                         this.loadError = true;
                         this.errorMessage = 'Could not load the gallery. Please try refreshing.';
-                        // Do NOT load demo data in production
                     } finally {
                         this.isLoading = false;
                     }
                 },
 
                 renderVisibleMoments() {
-                    const nextBatch = this.allMoments.slice(0, this.page * this.itemsPerPage);
-                    this.visibleMoments = nextBatch;
-                    this.hasMore = this.visibleMoments.length < this.allMoments.length;
+                    // Logic moved to loadMomentsFromServer since we now display everything we fetch
+                    this.visibleMoments = this.allMoments;
                 },
 
                 loadMore() {
+                    if (this.isLoading || !this.hasMore) return;
                     this.page++;
-                    this.renderVisibleMoments();
+                    this.loadMomentsFromServer(this.page);
                 },
 
                 openModal() {
