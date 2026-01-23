@@ -648,22 +648,25 @@
                                 const canvas = document.createElement('canvas');
                                 const ctx = canvas.getContext('2d');
 
-                                // Target dimensions (4:5 aspect ratio)
-                                const MAX_WIDTH = 800;
+                                // Target dimensions (1:1 aspect ratio for the photo part)
+                                // We'll make it high res
+                                const MAX_WIDTH = 1000;
                                 const MAX_HEIGHT = 1000;
 
                                 let width = img.width;
                                 let height = img.height;
 
-                                // Calculate crop (center crop 4:5)
+                                // Calculate crop (center crop 1:1)
                                 let sx = 0, sy = 0, sWidth = width, sHeight = height;
-                                const targetRatio = 4 / 5;
+                                const targetRatio = 1; // Square
                                 const sourceRatio = width / height;
 
                                 if (sourceRatio > targetRatio) {
+                                    // Source is wider, crop width
                                     sWidth = height * targetRatio;
                                     sx = (width - sWidth) / 2;
                                 } else {
+                                    // Source is taller, crop height
                                     sHeight = width / targetRatio;
                                     sy = (height - sHeight) / 2;
                                 }
@@ -672,7 +675,7 @@
                                 canvas.height = MAX_HEIGHT;
 
                                 ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, MAX_WIDTH, MAX_HEIGHT);
-                                resolve(canvas.toDataURL('image/jpeg', 0.85));
+                                resolve(canvas.toDataURL('image/jpeg', 0.90));
                             };
                             img.onerror = reject;
                         };
@@ -698,9 +701,9 @@
                             // Padding: 40px
                             // Bottom Text Area: 300px
                             const padding = 40;
-                            const photoWidth = 800;
+                            const photoWidth = 1000;
                             const photoHeight = 1000;
-                            const footerHeight = 300; // Space for message
+                            const footerHeight = 400; // Space for message
 
                             const canvasWidth = photoWidth + (padding * 2);
                             const canvasHeight = photoHeight + footerHeight + padding;
@@ -715,35 +718,42 @@
                             // 2. The Photo
                             ctx.drawImage(img, padding, padding, photoWidth, photoHeight);
 
-                            // 3. Inner Shadow / Gradient Overlay on Photo (Bottom)
-                            // This ensures the Name text is readable
-                            const gradient = ctx.createLinearGradient(0, padding + photoHeight - 300, 0, padding + photoHeight);
-                            gradient.addColorStop(0, 'rgba(0,0,0,0)');
-                            gradient.addColorStop(1, 'rgba(0,0,0,0.7)');
-                            ctx.fillStyle = gradient;
-                            ctx.fillRect(padding, padding + photoHeight - 300, photoWidth, 300);
+                            // 3. Name Background (Dark Semi-transparent Box)
+                            ctx.font = '80px "Dancing Script", cursive'; // Set font first to measure
+                            const textMetrics = ctx.measureText(name);
+                            const textWidth = textMetrics.width;
+
+                            const nameBoxWidth = Math.max(textWidth + 100, photoWidth * 0.4); // Min width or text width + padding
+                            const nameBoxHeight = 120;
+                            const nameBoxY = padding + photoHeight - nameBoxHeight - 20; // 20px from bottom of photo
+                            const nameBoxX = padding + (photoWidth - nameBoxWidth) / 2; // Center it
+
+                            // Rounded Rect for Name Background
+                            ctx.beginPath();
+                            if (ctx.roundRect) {
+                                ctx.roundRect(nameBoxX, nameBoxY, nameBoxWidth, nameBoxHeight, 20);
+                            } else {
+                                ctx.rect(nameBoxX, nameBoxY, nameBoxWidth, nameBoxHeight);
+                            }
+                            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'; // Dark background
+                            ctx.fill();
 
                             // 4. Name (Inside Photo, Bottom Center)
                             ctx.textAlign = 'center';
-                            ctx.textBaseline = 'bottom';
+                            ctx.textBaseline = 'middle';
                             ctx.fillStyle = '#ffffff';
-                            // Use the same font family as website
-                            ctx.font = '60px "Dancing Script", cursive';
-                            // Add drop shadow for better readability
-                            ctx.shadowColor = 'rgba(0,0,0,0.5)';
-                            ctx.shadowBlur = 10;
-                            ctx.shadowOffsetX = 2;
-                            ctx.shadowOffsetY = 2;
 
-                            // Truncate name if too long?
-                            ctx.fillText(name, canvasWidth / 2, padding + photoHeight - 30);
+                            // Center in the box
+                            // Y is top of box + half height. 
+                            // Adding a small offset often helps visually center cursive fonts
+                            ctx.fillText(name, canvasWidth / 2, nameBoxY + (nameBoxHeight / 2));
 
                             // Reset Shadow
                             ctx.shadowColor = 'transparent';
 
                             // 5. Message (In White Footer)
                             ctx.fillStyle = '#2C2C2C'; // wedding-dark
-                            ctx.font = 'italic 24px "Playfair Display", serif';
+                            ctx.font = 'italic 48px "Playfair Display", serif';
                             ctx.textBaseline = 'middle';
 
                             const messageCenterY = padding + photoHeight + (footerHeight / 2);
@@ -768,7 +778,7 @@
                             lines.push(line);
 
                             // Draw lines
-                            const lineHeight = 36;
+                            const lineHeight = 72;
                             const totalTextHeight = lines.length * lineHeight;
                             let startY = messageCenterY - (totalTextHeight / 2) + (lineHeight / 2);
 
