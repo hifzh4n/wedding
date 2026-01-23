@@ -170,41 +170,63 @@
         <!-- Gallery Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12 px-4 md:px-0">
             <template x-for="moment in visibleMoments" :key="moment.id">
-                <div class="group relative bg-white p-3 pb-20 shadow-xl transform transition-all duration-500 hover:scale-[1.05] hover:z-20 hover:shadow-2xl"
+                <div class="relative transition-transform duration-500 hover:z-20"
                     :style="`transform: rotate(${moment.rotation}deg)`"
                     @mouseenter="$el.style.transform = 'scale(1.05) rotate(0deg)'"
                     @mouseleave="$el.style.transform = `rotate(${moment.rotation}deg)`">
-                    <!-- Pin/Tape (Decorative) -->
-                    <div
-                        class="absolute -top-3 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-white/40 blur-[1px] shadow-sm border border-white/50 z-20">
-                    </div>
 
-                    <!-- Image Frame -->
-                    <div class="aspect-[4/5] w-full overflow-hidden bg-gray-100 relative cursor-pointer shadow-inner"
-                        @click="viewImage(moment)">
-                        <img :src="moment.image" :alt="moment.name" referrerpolicy="no-referrer"
-                            class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                    <!-- OLD STYLE (HTML Frame + Overlays) -->
+                    <template x-if="!isNewStyle(moment)">
+                        <div class="group relative bg-white p-3 pb-20 shadow-xl hover:shadow-2xl h-full">
+                            <!-- Pin/Tape (Decorative) -->
+                            <div
+                                class="absolute -top-3 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-white/40 blur-[1px] shadow-sm border border-white/50 z-20">
+                            </div>
 
-                        <!-- Gradient Overlay for Text Readability -->
-                        <div
-                            class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80">
-                        </div>
+                            <!-- Image Frame -->
+                            <div class="aspect-[4/5] w-full overflow-hidden bg-gray-100 relative cursor-pointer shadow-inner"
+                                @click="viewImage(moment)">
+                                <img :src="moment.image" :alt="moment.name" referrerpolicy="no-referrer"
+                                    class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
 
-                        <!-- Name Overlay (Bright) -->
-                        <div
-                            class="absolute bottom-4 left-4 right-4 text-center transform translate-y-0 transition-transform duration-300">
-                            <div class="inline-block bg-black/50 backdrop-blur-sm px-4 py-2 rounded-lg">
-                                <h3 class="font-script text-3xl sm:text-4xl text-white mb-0 leading-tight drop-shadow-md truncate"
-                                    x-text="moment.name" :title="moment.name"></h3>
+                                <!-- Gradient Overlay -->
+                                <div
+                                    class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80">
+                                </div>
+
+                                <!-- Name Overlay -->
+                                <div
+                                    class="absolute bottom-4 left-4 right-4 text-center transform translate-y-0 transition-transform duration-300">
+                                    <div class="inline-block bg-black/50 backdrop-blur-sm px-4 py-2 rounded-lg">
+                                        <h3 class="font-script text-3xl sm:text-4xl text-white mb-0 leading-tight drop-shadow-md truncate"
+                                            x-text="moment.name" :title="moment.name"></h3>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Caption Section -->
+                            <div class="text-center absolute bottom-2 left-2 right-2 bg-white p-4 rounded-sm">
+                                <p class="font-serif text-sm text-gray-800 italic line-clamp-3 leading-relaxed"
+                                    x-text="moment.message"></p>
                             </div>
                         </div>
-                    </div>
+                    </template>
 
-                    <!-- Caption Section (Paper Bottom) -->
-                    <div class="text-center absolute bottom-2 left-2 right-2 bg-white p-4 rounded-sm">
-                        <p class="font-serif text-sm text-gray-800 italic line-clamp-3 leading-relaxed"
-                            x-text="moment.message"></p>
-                    </div>
+                    <!-- NEW STYLE (Pre-baked Composite Image) -->
+                    <template x-if="isNewStyle(moment)">
+                        <div class="group relative shadow-xl hover:shadow-2xl cursor-pointer"
+                            @click="viewImage(moment)">
+                            <!-- Pin/Tape (Decorative) -->
+                            <div
+                                class="absolute -top-3 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-white/40 blur-[1px] shadow-sm border border-white/50 z-20">
+                            </div>
+
+                            <!-- Just the image (Card is baked in) -->
+                            <img :src="moment.image" :alt="moment.name" referrerpolicy="no-referrer"
+                                class="w-full h-auto object-contain bg-white transition-opacity duration-300">
+                        </div>
+                    </template>
+
                 </div>
             </template>
         </div>
@@ -587,18 +609,20 @@
                         return;
                     }
 
-                    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-                        alert('Image is too large. Please select an image under 5MB.');
+                    if (file.size > 10 * 1024 * 1024) { // Increased to 10MB limit for raw photos
+                        alert('Image is too large. Please select an image under 10MB.');
                         return;
                     }
 
                     this.isProcessingImage = true;
 
                     try {
-                        // Compress and crop image
+                        // Just compress/crop the raw photo first for preview
                         const compressedImage = await this.processImage(file);
                         this.tempImage = compressedImage;
                         this.formData.image = compressedImage;
+                        // Note: We will generate the FULL composite (with text) only on submit
+                        // to ensure we have the latest Name/Message typed by the user.
                     } catch (error) {
                         console.error('Error processing image:', error);
                         alert('Error processing image. Please try again.');
@@ -630,11 +654,9 @@
                                 const sourceRatio = width / height;
 
                                 if (sourceRatio > targetRatio) {
-                                    // Source is wider, crop width
                                     sWidth = height * targetRatio;
                                     sx = (width - sWidth) / 2;
                                 } else {
-                                    // Source is taller, crop height
                                     sHeight = width / targetRatio;
                                     sy = (height - sHeight) / 2;
                                 }
@@ -643,12 +665,114 @@
                                 canvas.height = MAX_HEIGHT;
 
                                 ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, MAX_WIDTH, MAX_HEIGHT);
-                                resolve(canvas.toDataURL('image/jpeg', 0.85)); // 85% quality
+                                resolve(canvas.toDataURL('image/jpeg', 0.85));
                             };
                             img.onerror = reject;
                         };
                         reader.onerror = reject;
                         reader.readAsDataURL(file);
+                    });
+                },
+
+                // NEW: Generate the full "Polaroid" card with text baked in
+                async createCompositeImage(base64Image, name, message) {
+                    return new Promise((resolve, reject) => {
+                        const img = new Image();
+                        img.src = base64Image;
+                        img.onload = async () => {
+                            // Ensure fonts are loaded (optional but good practice)
+                            await document.fonts.ready;
+
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+
+                            // Dimensions
+                            // Inner Photo: 800x1000
+                            // Padding: 40px
+                            // Bottom Text Area: 300px
+                            const padding = 40;
+                            const photoWidth = 800;
+                            const photoHeight = 1000;
+                            const footerHeight = 300; // Space for message
+
+                            const canvasWidth = photoWidth + (padding * 2);
+                            const canvasHeight = photoHeight + footerHeight + padding;
+
+                            canvas.width = canvasWidth;
+                            canvas.height = canvasHeight;
+
+                            // 1. White Background (The Card)
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                            // 2. The Photo
+                            ctx.drawImage(img, padding, padding, photoWidth, photoHeight);
+
+                            // 3. Inner Shadow / Gradient Overlay on Photo (Bottom)
+                            // This ensures the Name text is readable
+                            const gradient = ctx.createLinearGradient(0, padding + photoHeight - 300, 0, padding + photoHeight);
+                            gradient.addColorStop(0, 'rgba(0,0,0,0)');
+                            gradient.addColorStop(1, 'rgba(0,0,0,0.7)');
+                            ctx.fillStyle = gradient;
+                            ctx.fillRect(padding, padding + photoHeight - 300, photoWidth, 300);
+
+                            // 4. Name (Inside Photo, Bottom Center)
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'bottom';
+                            ctx.fillStyle = '#ffffff';
+                            // Use the same font family as website
+                            ctx.font = '60px "Dancing Script", cursive';
+                            // Add drop shadow for better readability
+                            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                            ctx.shadowBlur = 10;
+                            ctx.shadowOffsetX = 2;
+                            ctx.shadowOffsetY = 2;
+
+                            // Truncate name if too long?
+                            ctx.fillText(name, canvasWidth / 2, padding + photoHeight - 30);
+
+                            // Reset Shadow
+                            ctx.shadowColor = 'transparent';
+
+                            // 5. Message (In White Footer)
+                            ctx.fillStyle = '#2C2C2C'; // wedding-dark
+                            ctx.font = 'italic 24px "Playfair Display", serif';
+                            ctx.textBaseline = 'middle';
+
+                            const messageCenterY = padding + photoHeight + (footerHeight / 2);
+                            const maxWidth = photoWidth; // keep within photo width margins
+
+                            // Simple word wrap
+                            const words = message.split(' ');
+                            let line = '';
+                            let lines = [];
+
+                            for (let n = 0; n < words.length; n++) {
+                                const testLine = line + words[n] + ' ';
+                                const metrics = ctx.measureText(testLine);
+                                const testWidth = metrics.width;
+                                if (testWidth > maxWidth && n > 0) {
+                                    lines.push(line);
+                                    line = words[n] + ' ';
+                                } else {
+                                    line = testLine;
+                                }
+                            }
+                            lines.push(line);
+
+                            // Draw lines
+                            const lineHeight = 36;
+                            const totalTextHeight = lines.length * lineHeight;
+                            let startY = messageCenterY - (totalTextHeight / 2) + (lineHeight / 2);
+
+                            for (let i = 0; i < lines.length; i++) {
+                                ctx.fillText(lines[i], canvasWidth / 2, startY + (i * lineHeight));
+                            }
+
+                            // Return as JPEG
+                            resolve(canvas.toDataURL('image/jpeg', 0.90));
+                        };
+                        img.onerror = reject;
                     });
                 },
 
@@ -658,17 +782,18 @@
                     this.isProcessingImage = true;
 
                     try {
-                        // 1. Upload Image to Google Drive
-                        // Apps Script expects standard form data or URL parameters. 
-                        // For file uploads, Base64 in a hidden method is often easiest if the previous method worked.
-                        // But let's stick to the method that worked: POST with URLSearchParams for textual data, 
-                        // but for specific image data simpler to plain POST body if capable.
-                        // Actually, looking at the backend code, it expects `e.parameter.imageData`.
-                        // URLSearchParams is safest for Google Apps Script Web Apps.
+                        // 0. GENERATE COMPOSITE IMAGE
+                        // We use the tempImage (already cropped 4:5) as base
+                        const finalComposite = await this.createCompositeImage(
+                            this.formData.image,
+                            this.formData.name,
+                            this.formData.message
+                        );
 
+                        // 1. Upload Image to Google Drive
                         const imageUploadParams = new URLSearchParams();
                         imageUploadParams.append('action', 'uploadImage');
-                        imageUploadParams.append('imageData', this.formData.image);
+                        imageUploadParams.append('imageData', finalComposite); // Upload the composite!
                         imageUploadParams.append('fileName', `moment_${Date.now()}.jpg`);
 
                         const uploadResponse = await fetch(GOOGLE_SCRIPT_URL, {
@@ -741,15 +866,26 @@
                     return `${Math.floor(seconds / 604800)} weeks ago`;
                 },
 
-                nextSlide() {
-                    this.currentSlide = (this.currentSlide + 1) % this.moments.length;
-                },
-
-                previousSlide() {
-                    this.currentSlide = (this.currentSlide - 1 + this.moments.length) % this.moments.length;
+                // Helper to detect if an image is "New Style" (Composite) based on ID/Timestamp
+                // Adjust this timestamp to the current deployment time
+                isNewStyle(moment) {
+                    // ID is a timestamp. 
+                    // Any ID generated AFTER 1737600000000 (roughly Jan 23 2026) is new style
+                    return moment.id > 1737600000000;
                 }
             }
         }
+    </script>
+
+    nextSlide() {
+    this.currentSlide = (this.currentSlide + 1) % this.moments.length;
+    },
+
+    previousSlide() {
+    this.currentSlide = (this.currentSlide - 1 + this.moments.length) % this.moments.length;
+    }
+    }
+    }
     </script>
 </body>
 
